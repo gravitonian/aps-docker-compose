@@ -1,0 +1,71 @@
+version: '3.9'
+
+services:
+  process:
+    #image:alfresco/process-services:1.11.1  
+    image: alfresco/process-services:2.3.8
+    environment:
+      JAVA_OPTS: " -Xms256m -Xmx1g"
+      CATALINA_OPTS: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
+    ports:
+      - 8080:8080 # Browser port
+      - 5006:5005 # Remote Debug
+    depends_on:
+      - postgres
+      - elasticsearch
+      - process-admin
+    volumes:
+      - ./activiti-license/activiti.lic:/home/alfresco/.activiti/enterprise-license/activiti.lic:ro
+      - ./config/activiti-app.properties:/usr/local/tomcat/lib/activiti-app.properties
+      - aps_contentstore:/usr/share/data
+
+  process-admin:
+    image: alfresco/process-services-admin:2.3.8 
+    environment:
+      JAVA_OPTS: " -Xms256m -Xmx512m"
+    ports:
+      - 9090:9090
+    depends_on:
+      - postgres-admin
+    volumes:
+      - ./config/activiti-admin.properties:/usr/local/tomcat/lib/activiti-admin.properties
+
+  elasticsearch:
+    image: elasticsearch:7.17.1
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - 9300:9300
+      - 9200:9200
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+
+  postgres:
+    image: postgres:13.1
+    environment:
+      POSTGRES_DB: activiti
+      POSTGRES_USER: alfresco
+      POSTGRES_PASSWORD: alfresco
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  postgres-admin:
+     image: postgres:13.1
+     environment:
+       POSTGRES_DB: activiti-admin
+       POSTGRES_USER: alfresco
+       POSTGRES_PASSWORD: alfresco
+     ports:
+       - 5433:5433
+     volumes:
+      - postgres_admin_data:/var/lib/postgresql/data
+     command: -p 5433
+
+volumes:
+  aps_contentstore:
+  elastic_data:
+  postgres_data:
+  postgres_admin_data:
